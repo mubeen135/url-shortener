@@ -20,10 +20,34 @@
 
     # php artisan migrate
 
-6. Create Storage Link
+6. Run Database Seeders
+
+    # php artisan db:seed
+
+7. Create Storage Link
 
     # php artisan storage:link
 
-7. Install NPM Dependencies (Optional)
+8. For Login
+
+    # Super Admin
+
+    # email - admin@shorturl.com
+
+    # psw - password
+
+    # Admin
+
+    # email - admin@techcorp.com
+
+    # psw - password
+
+    # Member
+
+    # email - jessica@techcorp.com
+
+    # psw - password
+
+9. Install NPM Dependencies (Optional)
     # npm install
     # npm run build
