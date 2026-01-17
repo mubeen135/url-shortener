@@ -49,5 +49,11 @@
     # psw - password
 
 9. Install NPM Dependencies (Optional)
+
     # npm install
+
     # npm run build
+
+10. Development Server (Recommended for Local Development)
+
+    # php artisan serve
