@@ -121,32 +121,8 @@ class DashboardController extends Controller
         // Paginate results
         $shortUrls = $query->paginate(10);
         
-        // Get stats for this month, last month, last week, today
-        $now = Carbon::now();
-        
-        $thisMonth = $user->shortUrls()
-            ->whereMonth('created_at', $now->month)
-            ->whereYear('created_at', $now->year)
-            ->count();
-        
-        $lastMonth = $user->shortUrls()
-            ->whereMonth('created_at', $now->subMonth()->month)
-            ->whereYear('created_at', $now->year)
-            ->count();
-        
-        $lastWeekStart = $now->copy()->subWeek()->startOfWeek();
-        $lastWeekEnd = $now->copy()->subWeek()->endOfWeek();
-        
-        $lastWeek = $user->shortUrls()
-            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
-            ->count();
-        
-        $today = $user->shortUrls()
-            ->whereDate('created_at', $now->today())
-            ->count();
-        
         return view('dashboard.member', compact(
-            'user', 'shortUrls', 'thisMonth', 'lastMonth', 'lastWeek', 'today'
+            'user', 'shortUrls'
         ));
     }
 

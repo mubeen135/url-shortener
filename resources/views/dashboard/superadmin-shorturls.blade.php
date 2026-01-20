@@ -6,43 +6,7 @@
 @section('content')
   <div class="space-y-6">
     <!-- Stats Section -->
-    {{-- <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <i class="fas fa-link text-2xl text-blue-500"></i>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">Total URLs</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ $totalUrls }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <i class="fas fa-chart-line text-2xl text-green-500"></i>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">Total Hits</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ $totalHits }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <i class="fas fa-building text-2xl text-purple-500"></i>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">Total Companies</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ $totalCompanies }}</p>
-          </div>
-        </div>
-      </div>
-    </div> --}}
+   
 
     <!-- Filter Section -->
     <div class="bg-white rounded-lg shadow p-4">
@@ -63,11 +27,11 @@
             </div>
           </div>
           
-          @if(request('filter'))
-            <a href="{{ route('short-urls.index') }}"
-              class="px-4 py-2 mt-6 text-sm font-medium bg-gray-100 text-gray-700 rounded-md border border-gray-300 hover:bg-gray-200">
-              Clear Filter
-            </a>
+         @if(request()->hasAny(['filter', 'search']))
+              <a href="{{ route('short-urls.index') }}"
+                  class="px-4 py-2 mt-6 text-sm font-medium bg-gray-100 text-gray-700 rounded-md border border-gray-300 hover:bg-gray-200">
+                  Clear Filter
+              </a>
           @endif
         </div>
         
@@ -180,29 +144,30 @@
       </div>
 
       <!-- Pagination Section -->
+      <!-- Pagination Section -->
       <div class="px-6 py-4 border-t border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-gray-700">
-            Showing {{ $shortUrls->firstItem() }} to {{ $shortUrls->lastItem() }} of {{ $shortUrls->total() }} results
-          </div>
-          <div class="flex space-x-2">
-            <!-- Previous Page Link -->
-            @if($shortUrls->onFirstPage())
-              <span class="px-3 py-1 text-gray-400 cursor-not-allowed">← Prev</span>
-            @else
-              <a href="{{ $shortUrls->previousPageUrl() }}{{ request('filter') ? '&filter=' . request('filter') : '' }}"
-                class="px-3 py-1 text-blue-600 hover:text-blue-800">← Prev</a>
-            @endif
+          <div class="flex items-center justify-between">
+              <div class="text-sm text-gray-700">
+                  Showing {{ $shortUrls->firstItem() }} to {{ $shortUrls->lastItem() }} of {{ $shortUrls->total() }} results
+              </div>
+              <div class="flex space-x-2">
+                  <!-- Previous Page Link -->
+                  @if($shortUrls->onFirstPage())
+                      <span class="px-3 py-1 text-gray-400 cursor-not-allowed">← Prev</span>
+                  @else
+                      <a href="{{ $shortUrls->previousPageUrl() . (request()->hasAny(['filter', 'search']) ? '&' . http_build_query(request()->only(['filter', 'search'])) : '') }}"
+                          class="px-3 py-1 text-blue-600 hover:text-blue-800">← Prev</a>
+                  @endif
 
-            <!-- Next Page Link -->
-            @if($shortUrls->hasMorePages())
-              <a href="{{ $shortUrls->nextPageUrl() }}{{ request('filter') ? '&filter=' . request('filter') : '' }}"
-                class="px-3 py-1 text-blue-600 hover:text-blue-800">Next →</a>
-            @else
-              <span class="px-3 py-1 text-gray-400 cursor-not-allowed">Next →</span>
-            @endif
+                  <!-- Next Page Link -->
+                  @if($shortUrls->hasMorePages())
+                      <a href="{{ $shortUrls->nextPageUrl() . (request()->hasAny(['filter', 'search']) ? '&' . http_build_query(request()->only(['filter', 'search'])) : '') }}"
+                          class="px-3 py-1 text-blue-600 hover:text-blue-800">Next →</a>
+                  @else
+                      <span class="px-3 py-1 text-gray-400 cursor-not-allowed">Next →</span>
+                  @endif
+              </div>
           </div>
-        </div>
       </div>
     </div>
   </div>

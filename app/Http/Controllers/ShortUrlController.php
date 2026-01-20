@@ -52,10 +52,17 @@ class ShortUrlController extends Controller
     {
         $user = Auth::user();
         
-        // Start query
-        $query = ShortUrl::where('company_id', $user->company_id)
+        if($user->isMember()){
+            $query = $user->shortUrls()
+            ->orderBy('created_at', 'desc');
+        }else{
+            $query = ShortUrl::where('company_id', $user->company_id)
             ->with('user')
             ->orderBy('created_at', 'desc');
+        }
+        
+        // Start query
+        
         
         // Apply date filters
         $filter = $request->get('filter', 'all');
@@ -96,7 +103,7 @@ class ShortUrlController extends Controller
         }
         
         // Paginate results
-        $shortUrls = $query->paginate(20);
+        $shortUrls = $query->paginate(5);
         
         // Get stats (apply same filters for stats if needed)
         $totalUrls = $query->count();
@@ -167,7 +174,7 @@ class ShortUrlController extends Controller
         return response()->json(['error' => 'Unauthorized'], 403);
     }
 
-   public function superAdminIndex(Request $request)
+    public function superAdminIndex(Request $request)
     {
         // Only super admin can access this
         if (!Auth::user()->isSuperAdmin()) {
@@ -178,35 +185,42 @@ class ShortUrlController extends Controller
         $query = ShortUrl::with(['company', 'user'])
             ->orderBy('created_at', 'desc');
         
-        // Add search filter if provided
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('short_code', 'like', "%{$search}%")
-                ->orWhere('long_url', 'like', "%{$search}%")
-                ->orWhereHas('company', function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%");
-                })
-                ->orWhereHas('user', function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                });
-            });
+        // Add date filter if provided
+        if ($request->has('filter')) {
+            $now = Carbon::now();
+            
+            switch($request->filter) {
+                case 'today':
+                    $query->whereDate('created_at', $now->toDateString());
+                    break;
+                case 'last_week':
+                    $query->whereBetween('created_at', [
+                        $now->copy()->subWeek()->startOfWeek(),
+                        $now->copy()->subWeek()->endOfWeek()
+                    ]);
+                    break;
+                case 'last_month':
+                    $query->whereBetween('created_at', [
+                        $now->copy()->subMonth()->startOfMonth(),
+                        $now->copy()->subMonth()->endOfMonth()
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereBetween('created_at', [
+                        $now->copy()->startOfMonth(),
+                        $now->copy()->endOfMonth()
+                    ]);
+                    break;
+            }
         }
         
         // Always use pagination (remove "View All" check)
-        $shortUrls = $query->paginate(20);
+        $shortUrls = $query->paginate(perPage: 5);
         
-        // Get total counts for stats
-        $totalUrls = ShortUrl::count();
-        $totalHits = ShortUrl::sum('hits');
-        $totalCompanies = Company::count();
+        
         
         return view('dashboard.superadmin-shorturls', compact(
-            'shortUrls', 
-            'totalUrls',
-            'totalHits',
-            'totalCompanies'
+            'shortUrls'
         ));
     }
 

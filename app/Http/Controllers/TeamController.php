@@ -35,7 +35,7 @@ class TeamController extends Controller
             ->withCount(['shortUrls'])
             ->withSum('shortUrls as short_urls_sum_hits', 'hits')
             ->orderBy('created_at', 'desc')
-            ->paginate(20); // More per page for "View All"
+            ->paginate(2); // More per page for "View All"
         
         return view('client-admin.team.index', compact('teamMembers'));
     }

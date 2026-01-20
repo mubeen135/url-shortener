@@ -63,85 +63,131 @@ class DatabaseSeeder extends Seeder
             $createdCompanies[] = $company;
         }
 
-        // Create users for each company
-        $allUsers = [$superAdmin];
+        // Store all users to be created
+        $allUsersToCreate = [$superAdmin];
         
+        // First, collect all user data
         foreach ($createdCompanies as $company) {
-            // Create company admin
-            $companyAdmin = User::create([
+            // Company admin data
+            $companyAdmin = [
                 'name' => $this->getCompanyAdminName($company->name),
                 'email' => $this->getCompanyAdminEmail($company->email),
                 'password' => Hash::make('password'),
                 'role' => 'admin',
                 'company_id' => $company->id,
                 'email_verified_at' => now(),
-            ]);
+            ];
             
-            $allUsers[] = $companyAdmin;
+            $allUsersToCreate[] = $companyAdmin;
 
-            // Create member users for each company (2-3 members)
+            // Member users data for each company (2-3 members)
             $memberCount = rand(2, 3);
             for ($i = 1; $i <= $memberCount; $i++) {
-                $member = User::create([
+                $member = [
                     'name' => $this->getMemberName($i),
                     'email' => $this->getMemberEmail($company->email, $i),
                     'password' => Hash::make('password'),
                     'role' => 'member',
                     'company_id' => $company->id,
                     'email_verified_at' => now(),
-                ]);
-                $allUsers[] = $member;
+                ];
+                $allUsersToCreate[] = $member;
             }
+        }
 
+        // Now create all users in the database
+        $allUsers = [];
+        foreach ($allUsersToCreate as $userData) {
+            if ($userData instanceof User) {
+                // This is the super admin already created
+                $allUsers[] = $userData;
+            } else {
+                // Create new user
+                $user = User::create($userData);
+                $allUsers[] = $user;
+            }
+        }
+
+        // Now create short URLs for each company
+        foreach ($createdCompanies as $company) {
+            // Get users from this company
+            $companyUsers = [];
+            foreach ($allUsers as $user) {
+                if ($user->company_id == $company->id) {
+                    $companyUsers[] = $user;
+                }
+            }
+            
             // Create short URLs for each company (5-12 URLs)
             $urlCount = rand(5, 12);
             for ($j = 0; $j < $urlCount; $j++) {
-                // Randomly assign URL to a user from this company
-                $companyUsers = array_filter($allUsers, function($user) use ($company) {
-                    return $user->company_id == $company->id;
-                });
-                $randomUser = $companyUsers[array_rand(array_values($companyUsers))];
-                
-                ShortUrl::create([
-                    'company_id' => $company->id,
-                    'user_id' => $randomUser->id,
-                    'short_code' => $this->generateShortCode(),
-                    'long_url' => $this->getLongUrlForCompany($company->name, $j),
-                    'hits' => rand(0, 1000),
-                    'created_at' => now()->subDays(rand(0, 90))->subHours(rand(0, 23)),
-                    'updated_at' => now(),
-                ]);
+                // Make sure we have users for this company
+                if (count($companyUsers) > 0) {
+                    $randomUser = $companyUsers[array_rand($companyUsers)];
+                    
+                    ShortUrl::create([
+                        'company_id' => $company->id,
+                        'user_id' => $randomUser->id,
+                        'short_code' => $this->generateShortCode(),
+                        'long_url' => $this->getLongUrlForCompany($company->name, $j),
+                        'hits' => rand(0, 1000),
+                        'created_at' => now()->subDays(rand(0, 90))->subHours(rand(0, 23)),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
             // Create some pending invitations for each company
             $invitationCount = rand(1, 3);
             for ($k = 0; $k < $invitationCount; $k++) {
-                Invitation::create([
-                    'company_id' => $company->id,
-                    'invited_by' => $companyAdmin->id,
-                    'email' => 'invited' . ($k + 1) . '@example.com',
-                    'token' => Str::random(60),
-                    'role' => rand(0, 1) ? 'admin' : 'member',
-                    'status' => 'pending',
-                    'expires_at' => now()->addDays(7),
-                    'created_at' => now()->subDays(rand(0, 5)),
-                ]);
+                // Find a company admin to be the inviter
+                $companyAdmin = null;
+                foreach ($companyUsers as $user) {
+                    if ($user->role == 'admin') {
+                        $companyAdmin = $user;
+                        break;
+                    }
+                }
+                
+                if ($companyAdmin) {
+                    Invitation::create([
+                        'company_id' => $company->id,
+                        'invited_by' => $companyAdmin->id,
+                        'email' => 'invited' . ($k + 1) . '@example.com',
+                        'token' => Str::random(60),
+                        'role' => rand(0, 1) ? 'admin' : 'member',
+                        'status' => 'pending',
+                        'expires_at' => now()->addDays(7),
+                        'created_at' => now()->subDays(rand(0, 5)),
+                    ]);
+                }
             }
         }
 
         // Create some expired invitations
         foreach ($createdCompanies as $company) {
             if (rand(0, 1)) { // 50% chance to create expired invitation
-                $companyUsers = array_filter($allUsers, function($user) use ($company) {
-                    return $user->company_id == $company->id && $user->role == 'admin';
-                });
+                // Get users from this company
+                $companyUsers = [];
+                foreach ($allUsers as $user) {
+                    if ($user->company_id == $company->id) {
+                        $companyUsers[] = $user;
+                    }
+                }
                 
-                if (!empty($companyUsers)) {
-                    $adminUser = array_values($companyUsers)[0];
-                    
+                // Find a company admin
+                $companyAdmin = null;
+                foreach ($companyUsers as $user) {
+                    if ($user->role == 'admin') {
+                        $companyAdmin = $user;
+                        break;
+                    }
+                }
+                
+                if ($companyAdmin) {
                     Invitation::create([
                         'company_id' => $company->id,
-                        'invited_by' => $adminUser->id,
+                        'invited_by' => $companyAdmin->id,
                         'email' => 'expired@example.com',
                         'token' => Str::random(60),
                         'role' => 'member',
@@ -156,34 +202,47 @@ class DatabaseSeeder extends Seeder
         // Create some accepted invitations (already converted to users)
         foreach ($createdCompanies as $company) {
             if (rand(0, 1)) { // 50% chance
-                $companyUsers = array_filter($allUsers, function($user) use ($company) {
-                    return $user->company_id == $company->id && $user->role == 'admin';
-                });
+                // Get users from this company
+                $companyUsers = [];
+                foreach ($allUsers as $user) {
+                    if ($user->company_id == $company->id) {
+                        $companyUsers[] = $user;
+                    }
+                }
                 
-                if (!empty($companyUsers)) {
-                    $adminUser = array_values($companyUsers)[0];
+                // Find a company admin
+                $companyAdmin = null;
+                foreach ($companyUsers as $user) {
+                    if ($user->role == 'admin') {
+                        $companyAdmin = $user;
+                        break;
+                    }
+                }
+                
+                if ($companyAdmin) {
+                    // Find a member user to associate with accepted invitation
+                    $memberUser = null;
+                    foreach ($companyUsers as $user) {
+                        if ($user->role == 'member') {
+                            $memberUser = $user;
+                            break;
+                        }
+                    }
                     
-                    Invitation::create([
-                        'company_id' => $company->id,
-                        'invited_by' => $adminUser->id,
-                        'email' => $this->getMemberEmail($company->email, 99), // Use existing user email
-                        'token' => Str::random(60),
-                        'role' => 'member',
-                        'status' => 'accepted',
-                        'expires_at' => now()->addDays(7),
-                        'created_at' => now()->subDays(20),
-                    ]);
+                    if ($memberUser) {
+                        Invitation::create([
+                            'company_id' => $company->id,
+                            'invited_by' => $companyAdmin->id,
+                            'email' => $memberUser->email,
+                            'token' => Str::random(60),
+                            'role' => 'member',
+                            'status' => 'accepted',
+                            'expires_at' => now()->addDays(7),
+                            'created_at' => now()->subDays(20),
+                        ]);
+                    }
                 }
             }
-        }
-
-        // Update short_url field after creation
-        $allShortUrls = ShortUrl::all();
-        $baseUrl = url('/');
-        
-        foreach ($allShortUrls as $shortUrl) {
-            $shortUrl->short_url = $baseUrl . '/' . $shortUrl->short_code;
-            $shortUrl->save();
         }
 
         $this->command->info('Database seeded successfully!');

@@ -44,7 +44,7 @@
 
     # Member
 
-    # email - jessica@techcorp.com
+    # email - david@techcorp.com
 
     # psw - password
 
