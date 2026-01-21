@@ -17,12 +17,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Clear existing data
-        Invitation::truncate();
-        ShortUrl::truncate();
-        User::truncate();
-        Company::truncate();
 
+    
         // Create Super Admin (no company_id)
         $superAdmin = User::create([
             'name' => 'Super Admin',
